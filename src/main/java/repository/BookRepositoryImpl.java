@@ -1,30 +1,35 @@
 package repository;
 
-import config.DatabaseConfig;
 import model.Book;
 import model.SearchCriteria;
+import org.springframework.stereotype.Repository;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public class BookRepositoryImpl implements BookRepository {
+
+    private final DataSource dataSource;
+
+    public BookRepositoryImpl(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
     @Override
     public void addBook(Book book) {
         String sql = "INSERT INTO books (title, author, publication_year, isbn, category_id, status) VALUES (?, ?, ?, ?, ?, ?)";
-
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setString(1, book.getTitle());
             stmt.setString(2, book.getAuthor());
             stmt.setInt(3, book.getPublicationYear());
             stmt.setString(4, book.getIsbn());
             stmt.setInt(5, book.getCategoryId());
             stmt.setString(6, book.getStatus() != null ? book.getStatus() : "AVAILABLE");
-
             stmt.executeUpdate();
             System.out.println("Dodano książkę: " + book.getTitle());
         } catch (SQLException e) {
@@ -36,11 +41,9 @@ public class BookRepositoryImpl implements BookRepository {
     public List<Book> getAllBooks() {
         List<Book> books = new ArrayList<>();
         String sql = "SELECT * FROM books WHERE is_deleted = FALSE";
-
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
-
             while (rs.next()) {
                 books.add(mapResultSetToBook(rs));
             }
@@ -53,7 +56,7 @@ public class BookRepositoryImpl implements BookRepository {
     @Override
     public Optional<Book> findById(int id) {
         String sql = "SELECT * FROM books WHERE id = ? AND is_deleted = FALSE";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
@@ -70,14 +73,11 @@ public class BookRepositoryImpl implements BookRepository {
     public List<Book> searchBooks(String query) {
         List<Book> books = new ArrayList<>();
         String sql = "SELECT * FROM books WHERE (LOWER(title) LIKE LOWER(?) OR LOWER(author) LIKE LOWER(?)) AND is_deleted = FALSE";
-
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             String pattern = "%" + query + "%";
             stmt.setString(1, pattern);
             stmt.setString(2, pattern);
-
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 books.add(mapResultSetToBook(rs));
@@ -108,7 +108,7 @@ public class BookRepositoryImpl implements BookRepository {
             params.add((criteria.getPage() - 1) * criteria.getPageSize());
         }
 
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
             setStatementParams(stmt, params);
             ResultSet rs = stmt.executeQuery();
@@ -127,7 +127,7 @@ public class BookRepositoryImpl implements BookRepository {
         StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM books");
         sql.append(buildWhereClause(criteria, params));
 
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
             setStatementParams(stmt, params);
             ResultSet rs = stmt.executeQuery();
@@ -167,15 +167,12 @@ public class BookRepositoryImpl implements BookRepository {
         }
     }
 
-
     @Override
     public List<Book> getBooksByCategory(int categoryId) {
         List<Book> books = new ArrayList<>();
         String sql = "SELECT * FROM books WHERE category_id = ? AND is_deleted = FALSE";
-
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setInt(1, categoryId);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
@@ -190,7 +187,7 @@ public class BookRepositoryImpl implements BookRepository {
     @Override
     public boolean deleteBook(int bookId) {
         String sql = "UPDATE books SET is_deleted = TRUE WHERE id = ?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, bookId);
             int affectedRows = stmt.executeUpdate();
@@ -203,10 +200,9 @@ public class BookRepositoryImpl implements BookRepository {
     @Override
     public int countAllBooks() {
         String sql = "SELECT COUNT(*) FROM books WHERE is_deleted = FALSE";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
-
             if (rs.next()) {
                 return rs.getInt(1);
             }
@@ -219,7 +215,7 @@ public class BookRepositoryImpl implements BookRepository {
     @Override
     public int countByStatus(String status) {
         String sql = "SELECT COUNT(*) FROM books WHERE status = ? AND is_deleted = FALSE";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, status);
             ResultSet rs = stmt.executeQuery();

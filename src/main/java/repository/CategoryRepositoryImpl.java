@@ -1,17 +1,27 @@
 package repository;
 
-import config.DatabaseConfig;
 import model.Category;
+import org.springframework.stereotype.Repository;
+
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public class CategoryRepositoryImpl implements CategoryRepository {
+
+    private final DataSource dataSource;
+
+    public CategoryRepositoryImpl(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
     @Override
     public void addCategory(String name) {
         String sql = "INSERT INTO categories (name) VALUES (?)";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, name);
             stmt.executeUpdate();
@@ -24,7 +34,7 @@ public class CategoryRepositoryImpl implements CategoryRepository {
     public List<Category> getAllCategories() {
         List<Category> list = new ArrayList<>();
         String sql = "SELECT * FROM categories";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
@@ -39,7 +49,7 @@ public class CategoryRepositoryImpl implements CategoryRepository {
     @Override
     public void deleteCategory(int id) {
         String sql = "DELETE FROM categories WHERE id = ?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
             stmt.executeUpdate();
@@ -51,7 +61,7 @@ public class CategoryRepositoryImpl implements CategoryRepository {
     @Override
     public void updateCategory(Category category) {
         String sql = "UPDATE categories SET name = ? WHERE id = ?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, category.getName());
             stmt.setInt(2, category.getId());
@@ -64,7 +74,7 @@ public class CategoryRepositoryImpl implements CategoryRepository {
     @Override
     public Optional<Category> findByName(String name) {
         String sql = "SELECT * FROM categories WHERE name = ?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, name);
             ResultSet rs = stmt.executeQuery();

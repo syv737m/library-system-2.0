@@ -3,9 +3,12 @@ package service;
 import model.Book;
 import repository.BookRepository;
 import repository.LoanRepository;
+import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.Optional;
 
+@Service
 public class LibraryService {
 
     private final LoanRepository loanRepository;
@@ -25,17 +28,16 @@ public class LibraryService {
         }
 
         Book book = bookOpt.get();
-        if (book.getStatus().equals("LOANED")) {
+        if ("LOANED".equals(book.getStatus())) {
             System.out.println("Książka jest już wypożyczona. Możesz ją zarezerwować.");
             return false;
         }
 
-        if (book.getStatus().equals("RESERVED") && !book.getReservedForUserId().equals(userId)) {
+        if ("RESERVED".equals(book.getStatus()) && !Objects.equals(book.getReservedForUserId(), userId)) {
             System.out.println("Książka jest zarezerwowana dla innego użytkownika.");
             return false;
         }
 
-        // Jeśli doszliśmy tutaj, książka jest 'AVAILABLE' lub 'RESERVED' dla tego usera
         return loanRepository.loanBook(userId, bookId);
     }
 }

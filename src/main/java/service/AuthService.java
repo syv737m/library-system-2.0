@@ -3,13 +3,15 @@ package service;
 import model.User;
 import org.mindrot.jbcrypt.BCrypt;
 import repository.UserRepository;
+import org.springframework.stereotype.Service;
+
 import java.util.Optional;
 
+@Service
 public class AuthService {
     private final UserRepository userRepository;
     private User currentUser;
 
-    // Dependency Injection przez konstruktor
     public AuthService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
@@ -18,7 +20,6 @@ public class AuthService {
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            // Sprawdzanie zahashowanego hasła
             if (BCrypt.checkpw(password, user.getPassword())) {
                 this.currentUser = user;
                 return true;

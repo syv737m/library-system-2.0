@@ -1,10 +1,10 @@
 package repository;
 
-import config.DatabaseConfig;
-import model.Book;
 import model.Loan;
 import model.Reservation;
+import org.springframework.stereotype.Repository;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -13,16 +13,23 @@ import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Optional;
 
+@Repository
 public class LoanRepositoryImpl implements LoanRepository {
 
-    private final ReservationRepository reservationRepository = new ReservationRepositoryImpl();
+    private final DataSource dataSource;
+    private final ReservationRepository reservationRepository;
+
+    public LoanRepositoryImpl(DataSource dataSource, ReservationRepository reservationRepository) {
+        this.dataSource = dataSource;
+        this.reservationRepository = reservationRepository;
+    }
 
     @Override
     public boolean loanBook(int userId, int bookId) {
         String insertLoan = "INSERT INTO loans (user_id, book_id, loan_date) VALUES (?, ?, ?)";
         String updateBook = "UPDATE books SET status = 'LOANED', reserved_for_user_id = NULL WHERE id = ?";
 
-        try (Connection conn = DatabaseConfig.getConnection()) {
+        try (Connection conn = dataSource.getConnection()) {
             conn.setAutoCommit(false);
 
             try (PreparedStatement loanStmt = conn.prepareStatement(insertLoan);
@@ -56,7 +63,7 @@ public class LoanRepositoryImpl implements LoanRepository {
     public boolean returnBook(int bookId, int userId) {
         String updateLoan = "UPDATE loans SET return_date = ? WHERE book_id = ? AND user_id = ? AND return_date IS NULL";
 
-        try (Connection conn = DatabaseConfig.getConnection()) {
+        try (Connection conn = dataSource.getConnection()) {
             conn.setAutoCommit(false);
 
             try (PreparedStatement loanStmt = conn.prepareStatement(updateLoan)) {
@@ -117,7 +124,7 @@ public class LoanRepositoryImpl implements LoanRepository {
                      "ORDER BY loan_count DESC " +
                      "LIMIT ?";
 
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, limit);
             ResultSet rs = stmt.executeQuery();
@@ -134,7 +141,7 @@ public class LoanRepositoryImpl implements LoanRepository {
 
     private List<Loan> fetchLoans(String sql) {
         List<Loan> list = new ArrayList<>();
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
@@ -149,7 +156,7 @@ public class LoanRepositoryImpl implements LoanRepository {
 
     private List<Loan> fetchLoans(String sql, int userId) {
         List<Loan> list = new ArrayList<>();
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, userId);
             ResultSet rs = stmt.executeQuery();

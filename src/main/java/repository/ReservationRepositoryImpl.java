@@ -1,20 +1,28 @@
 package repository;
 
-import config.DatabaseConfig;
 import model.Book;
 import model.Reservation;
+import org.springframework.stereotype.Repository;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public class ReservationRepositoryImpl implements ReservationRepository {
+
+    private final DataSource dataSource;
+
+    public ReservationRepositoryImpl(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
     @Override
     public void addReservation(int userId, int bookId) {
         String sql = "INSERT INTO reservations (user_id, book_id) VALUES (?, ?)";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, userId);
             stmt.setInt(2, bookId);
@@ -27,7 +35,7 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     @Override
     public Optional<Reservation> findNextReservationForBook(int bookId) {
         String sql = "SELECT * FROM reservations WHERE book_id = ? ORDER BY reservation_date ASC LIMIT 1";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, bookId);
             ResultSet rs = stmt.executeQuery();
@@ -48,7 +56,7 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     @Override
     public void deleteReservation(int reservationId) {
         String sql = "DELETE FROM reservations WHERE id = ?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, reservationId);
             stmt.executeUpdate();
@@ -61,7 +69,7 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     public List<Reservation> findReservationsByBookId(int bookId) {
         List<Reservation> reservations = new ArrayList<>();
         String sql = "SELECT * FROM reservations WHERE book_id = ? ORDER BY reservation_date ASC";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, bookId);
             ResultSet rs = stmt.executeQuery();
@@ -83,7 +91,7 @@ public class ReservationRepositoryImpl implements ReservationRepository {
     public List<Book> findBooksReservedByUser(int userId) {
         List<Book> books = new ArrayList<>();
         String sql = "SELECT * FROM books WHERE status = 'RESERVED' AND reserved_for_user_id = ?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, userId);
             ResultSet rs = stmt.executeQuery();

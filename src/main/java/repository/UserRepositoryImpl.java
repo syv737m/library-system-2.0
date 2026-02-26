@@ -1,32 +1,36 @@
 package repository;
 
-import config.DatabaseConfig;
 import model.User;
 import org.mindrot.jbcrypt.BCrypt;
+import org.springframework.stereotype.Repository;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public class UserRepositoryImpl implements UserRepository {
+
+    private final DataSource dataSource;
+
+    public UserRepositoryImpl(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
     @Override
     public void addUser(User user) {
         String sql = "INSERT INTO users (username, password, first_name, last_name, email, role) VALUES (?, ?, ?, ?, ?, ?)";
-
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setString(1, user.getUsername());
             String hashedPw = BCrypt.hashpw(user.getPassword(), BCrypt.gensalt());
             stmt.setString(2, hashedPw);
-
             stmt.setString(3, user.getFirstName());
             stmt.setString(4, user.getLastName());
             stmt.setString(5, user.getEmail());
             stmt.setString(6, user.getRole() != null ? user.getRole() : "USER");
-
             stmt.executeUpdate();
             System.out.println("Sukces: Użytkownik " + user.getUsername() + " został zarejestrowany.");
         } catch (SQLException e) {
@@ -37,12 +41,10 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public Optional<User> findByUsername(String username) {
         String sql = "SELECT * FROM users WHERE username = ?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setString(1, username);
             ResultSet rs = stmt.executeQuery();
-
             if (rs.next()) {
                 User user = new User(
                         rs.getInt("id"),
@@ -65,7 +67,7 @@ public class UserRepositoryImpl implements UserRepository {
     public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
         String sql = "SELECT * FROM users";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
@@ -84,7 +86,7 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public boolean deleteUser(int userId) {
         String sql = "DELETE FROM users WHERE id = ?";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, userId);
             int affectedRows = stmt.executeUpdate();
@@ -98,7 +100,7 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public int countActiveUsers() {
         String sql = "SELECT COUNT(DISTINCT user_id) FROM loans WHERE return_date IS NULL";
-        try (Connection conn = DatabaseConfig.getConnection();
+        try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             if (rs.next()) {
