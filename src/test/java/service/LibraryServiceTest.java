@@ -12,6 +12,7 @@ import repository.BookRepository;
 import repository.LoanRepository;
 import repository.ReservationRepository;
 
+import java.util.Collections;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -47,14 +48,17 @@ class LibraryServiceTest {
     void rentBook_shouldSucceed_whenBookIsAvailable() {
         // Given
         when(bookRepository.findById(1)).thenReturn(Optional.of(availableBook));
-        when(loanRepository.loanBook(1, 1)).thenReturn(true);
+        // Musimy zamockować listę rezerwacji, bo rentBook teraz ją sprawdza
+        when(reservationRepository.findReservationsByBookId(1)).thenReturn(Collections.emptyList());
 
         // When
         boolean result = libraryService.rentBook(1, 1);
 
         // Then
         assertTrue(result);
-        verify(loanRepository, times(1)).loanBook(1, 1);
+        // Weryfikujemy createLoan (void) i aktualizację statusu
+        verify(loanRepository, times(1)).createLoan(1, 1);
+        verify(bookRepository, times(1)).updateBookStatus(1, "LOANED", null);
     }
 
     @Test
@@ -67,7 +71,8 @@ class LibraryServiceTest {
 
         // Then
         assertFalse(result);
-        verify(loanRepository, never()).loanBook(anyInt(), anyInt());
+        verify(loanRepository, never()).createLoan(anyInt(), anyInt());
+        verify(bookRepository, never()).updateBookStatus(anyInt(), anyString(), any());
     }
 
     @Test
@@ -76,25 +81,26 @@ class LibraryServiceTest {
         when(bookRepository.findById(3)).thenReturn(Optional.of(reservedBook));
 
         // When
-        boolean result = libraryService.rentBook(1, 3); // User 1 tries to rent a book reserved for user 100
+        boolean result = libraryService.rentBook(1, 3); // User 1 próbuje wypożyczyć książkę zarezerwowaną dla Usera 100
 
         // Then
         assertFalse(result);
-        verify(loanRepository, never()).loanBook(anyInt(), anyInt());
+        verify(loanRepository, never()).createLoan(anyInt(), anyInt());
     }
 
     @Test
     void rentBook_shouldSucceed_whenBookIsReservedForTheCurrentUser() {
         // Given
         when(bookRepository.findById(3)).thenReturn(Optional.of(reservedBook));
-        when(loanRepository.loanBook(100, 3)).thenReturn(true);
+        when(reservationRepository.findReservationsByBookId(3)).thenReturn(Collections.emptyList());
 
         // When
-        boolean result = libraryService.rentBook(100, 3); // User 100 rents their reserved book
+        boolean result = libraryService.rentBook(100, 3); // User 100 wypożycza swoją rezerwację
 
         // Then
         assertTrue(result);
-        verify(loanRepository, times(1)).loanBook(100, 3);
+        verify(loanRepository, times(1)).createLoan(100, 3);
+        verify(bookRepository, times(1)).updateBookStatus(3, "LOANED", null);
     }
 
     @Test

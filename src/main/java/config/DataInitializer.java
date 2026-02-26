@@ -20,14 +20,12 @@ public class DataInitializer {
     private final UserRepository userRepo;
     private final BookRepository bookRepo;
     private final CategoryRepository catRepo;
-    private final LoanRepository loanRepo;
     private final LibraryService libraryService;
 
-    public DataInitializer(UserRepository userRepo, BookRepository bookRepo, CategoryRepository catRepo, LoanRepository loanRepo, LibraryService libraryService) {
+    public DataInitializer(UserRepository userRepo, BookRepository bookRepo, CategoryRepository catRepo, LibraryService libraryService) {
         this.userRepo = userRepo;
         this.bookRepo = bookRepo;
         this.catRepo = catRepo;
-        this.loanRepo = loanRepo;
         this.libraryService = libraryService;
     }
 
