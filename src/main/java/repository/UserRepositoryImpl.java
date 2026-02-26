@@ -19,7 +19,6 @@ public class UserRepositoryImpl implements UserRepository {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, user.getUsername());
-            // HASZOWANIE HASŁA przed zapisem do bazy
             String hashedPw = BCrypt.hashpw(user.getPassword(), BCrypt.gensalt());
             stmt.setString(2, hashedPw);
 
@@ -31,7 +30,7 @@ public class UserRepositoryImpl implements UserRepository {
             stmt.executeUpdate();
             System.out.println("Sukces: Użytkownik " + user.getUsername() + " został zarejestrowany.");
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas dodawania użytkownika", e);
         }
     }
 
@@ -48,7 +47,7 @@ public class UserRepositoryImpl implements UserRepository {
                 User user = new User(
                         rs.getInt("id"),
                         rs.getString("username"),
-                        rs.getString("password"), // To jest hash
+                        rs.getString("password"),
                         rs.getString("first_name"),
                         rs.getString("last_name"),
                         rs.getString("email"),
@@ -57,7 +56,7 @@ public class UserRepositoryImpl implements UserRepository {
                 return Optional.of(user);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas wyszukiwania użytkownika po nazwie", e);
         }
         return Optional.empty();
     }
@@ -76,14 +75,24 @@ public class UserRepositoryImpl implements UserRepository {
                         rs.getString("email"), rs.getString("role")
                 ));
             }
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) {
+            throw new RuntimeException("Błąd podczas pobierania wszystkich użytkowników", e);
+        }
         return users;
     }
 
     @Override
     public boolean deleteUser(int userId) {
-        // ... (tutaj kod usuwania taki jak miałeś wcześniej, ale wewnątrz impl)
-        return false; // uproszczenie na potrzeby przykładu
+        String sql = "DELETE FROM users WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0;
+        } catch (SQLException e) {
+            System.err.println("Błąd podczas usuwania użytkownika: Użytkownik może mieć powiązane wypożyczenia lub rezerwacje.");
+            return false;
+        }
     }
 
     @Override
@@ -96,7 +105,7 @@ public class UserRepositoryImpl implements UserRepository {
                 return rs.getInt(1);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas liczenia aktywnych użytkowników", e);
         }
         return 0;
     }

@@ -28,6 +28,7 @@ CREATE TABLE books (
     category_id INT,
     status VARCHAR(20) DEFAULT 'AVAILABLE', -- AVAILABLE, LOANED, RESERVED
     reserved_for_user_id INT NULL,
+    is_deleted BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
     FOREIGN KEY (reserved_for_user_id) REFERENCES users(id) ON DELETE SET NULL
 );

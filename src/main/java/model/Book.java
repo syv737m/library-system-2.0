@@ -18,4 +18,5 @@ public class Book {
     private int categoryId;
     private String status;
     private Integer reservedForUserId;
+    private boolean isDeleted;
 }

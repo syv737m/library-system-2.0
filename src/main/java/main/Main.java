@@ -7,6 +7,7 @@ import model.SearchCriteria;
 import model.User;
 import repository.*;
 import service.AuthService;
+import service.LibraryService;
 
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ public class Main {
     private static final LoanRepository loanRepo = new LoanRepositoryImpl();
     private static final ReservationRepository reservationRepo = new ReservationRepositoryImpl();
     private static final AuthService authService = new AuthService(userRepo);
+    private static final LibraryService libraryService = new LibraryService(loanRepo, bookRepo);
 
     private static final Scanner scanner = new Scanner(System.in);
     private static final int PAGE_SIZE = 5;
@@ -236,7 +238,7 @@ public class Main {
     private static void handleLoan() {
         System.out.print("Podaj ID książki do wypożyczenia: ");
         int bookId = readInt();
-        if (loanRepo.loanBook(authService.getCurrentUser().getId(), bookId)) {
+        if (libraryService.rentBook(authService.getCurrentUser().getId(), bookId)) {
             System.out.println("Sukces: Wypożyczono książkę.");
         }
     }
@@ -344,20 +346,46 @@ public class Main {
     private static void seedInitialData() {
         if (bookRepo.countAllBooks() == 0) {
             System.out.println("[System] Wypełnianie bazy danych przykładowymi danymi...");
+
+            // Dodaj kategorie
             catRepo.addCategory("Fantasy");
             catRepo.addCategory("Science Fiction");
             catRepo.addCategory("Kryminał");
             catRepo.addCategory("Historia");
 
-            bookRepo.addBook(Book.builder().title("Władca Pierścieni").author("J.R.R. Tolkien").publicationYear(1954).categoryId(1).status("AVAILABLE").build());
-            bookRepo.addBook(Book.builder().title("Diuna").author("Frank Herbert").publicationYear(1965).categoryId(2).status("AVAILABLE").build());
-            bookRepo.addBook(Book.builder().title("Morderstwo w Orient Expressie").author("Agatha Christie").publicationYear(1934).categoryId(3).status("AVAILABLE").build());
-            bookRepo.addBook(Book.builder().title("Sapiens: Od zwierząt do bogów").author("Yuval Noah Harari").publicationYear(2011).categoryId(4).status("AVAILABLE").build());
-            bookRepo.addBook(Book.builder().title("Hobbit, czyli tam i z powrotem").author("J.R.R. Tolkien").publicationYear(1937).categoryId(1).status("AVAILABLE").build());
-            bookRepo.addBook(Book.builder().title("Folwark zwierzęcy").author("George Orwell").publicationYear(1945).categoryId(2).status("AVAILABLE").build());
+            // Pobierz ID kategorii po nazwie
+            int fantasyId = catRepo.findByName("Fantasy").get().getId();
+            int scifiId = catRepo.findByName("Science Fiction").get().getId();
+            int crimeId = catRepo.findByName("Kryminał").get().getId();
+            int historyId = catRepo.findByName("Historia").get().getId();
+
+            // Dodaj książki
+            bookRepo.addBook(Book.builder().title("Władca Pierścieni").author("J.R.R. Tolkien").publicationYear(1954).categoryId(fantasyId).status("AVAILABLE").build());
+            bookRepo.addBook(Book.builder().title("Diuna").author("Frank Herbert").publicationYear(1965).categoryId(scifiId).status("AVAILABLE").build());
+            bookRepo.addBook(Book.builder().title("Morderstwo w Orient Expressie").author("Agatha Christie").publicationYear(1934).categoryId(crimeId).status("AVAILABLE").build());
+            bookRepo.addBook(Book.builder().title("Sapiens: Od zwierząt do bogów").author("Yuval Noah Harari").publicationYear(2011).categoryId(historyId).status("AVAILABLE").build());
+            bookRepo.addBook(Book.builder().title("Hobbit, czyli tam i z powrotem").author("J.R.R. Tolkien").publicationYear(1937).categoryId(fantasyId).status("AVAILABLE").build());
+            bookRepo.addBook(Book.builder().title("Folwark zwierzęcy").author("George Orwell").publicationYear(1945).categoryId(scifiId).status("AVAILABLE").build());
+
+            // Pobierz użytkowników
+            Optional<User> user1 = userRepo.findByUsername("user");
+            Optional<User> user2 = userRepo.findByUsername("user2");
+
+            // Stwórz historię wypożyczeń
+            if (user1.isPresent() && user2.isPresent()) {
+                System.out.println("[System] Tworzenie historii wypożyczeń...");
+                // Władca Pierścieni (3x), Diuna (2x), Hobbit (1x)
+                loanRepo.loanBook(user1.get().getId(), 1); loanRepo.returnBook(1, user1.get().getId());
+                loanRepo.loanBook(user2.get().getId(), 1); loanRepo.returnBook(1, user2.get().getId());
+                loanRepo.loanBook(user1.get().getId(), 1); loanRepo.returnBook(1, user1.get().getId());
+
+                loanRepo.loanBook(user2.get().getId(), 2); loanRepo.returnBook(2, user2.get().getId());
+                loanRepo.loanBook(user1.get().getId(), 2); loanRepo.returnBook(2, user1.get().getId());
+
+                loanRepo.loanBook(user1.get().getId(), 5); loanRepo.returnBook(5, user1.get().getId());
+            }
 
             // Wypożycz książkę dla user2
-            Optional<User> user2 = userRepo.findByUsername("user2");
             if (user2.isPresent()) {
                 loanRepo.loanBook(user2.get().getId(), 6); // Wypożycz "Folwark zwierzęcy"
                 System.out.println("[System] Książka 'Folwark zwierzęcy' została wypożyczona przez user2.");

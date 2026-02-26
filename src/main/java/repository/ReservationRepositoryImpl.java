@@ -20,7 +20,7 @@ public class ReservationRepositoryImpl implements ReservationRepository {
             stmt.setInt(2, bookId);
             stmt.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas dodawania rezerwacji", e);
         }
     }
 
@@ -40,7 +40,7 @@ public class ReservationRepositoryImpl implements ReservationRepository {
                 ));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas wyszukiwania następnej rezerwacji", e);
         }
         return Optional.empty();
     }
@@ -53,7 +53,7 @@ public class ReservationRepositoryImpl implements ReservationRepository {
             stmt.setInt(1, reservationId);
             stmt.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas usuwania rezerwacji", e);
         }
     }
 
@@ -74,7 +74,7 @@ public class ReservationRepositoryImpl implements ReservationRepository {
                 ));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas wyszukiwania rezerwacji po ID książki", e);
         }
         return reservations;
     }
@@ -97,10 +97,11 @@ public class ReservationRepositoryImpl implements ReservationRepository {
                         .categoryId(rs.getInt("category_id"))
                         .status(rs.getString("status"))
                         .reservedForUserId((Integer) rs.getObject("reserved_for_user_id"))
+                        .isDeleted(rs.getBoolean("is_deleted"))
                         .build());
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas wyszukiwania książek zarezerwowanych przez użytkownika", e);
         }
         return books;
     }

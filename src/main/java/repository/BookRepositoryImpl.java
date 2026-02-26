@@ -28,14 +28,14 @@ public class BookRepositoryImpl implements BookRepository {
             stmt.executeUpdate();
             System.out.println("Dodano książkę: " + book.getTitle());
         } catch (SQLException e) {
-            System.err.println("Błąd podczas dodawania książki: " + e.getMessage());
+            throw new RuntimeException("Błąd podczas dodawania książki", e);
         }
     }
 
     @Override
     public List<Book> getAllBooks() {
         List<Book> books = new ArrayList<>();
-        String sql = "SELECT * FROM books";
+        String sql = "SELECT * FROM books WHERE is_deleted = FALSE";
 
         try (Connection conn = DatabaseConfig.getConnection();
              Statement stmt = conn.createStatement();
@@ -45,14 +45,14 @@ public class BookRepositoryImpl implements BookRepository {
                 books.add(mapResultSetToBook(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas pobierania wszystkich książek", e);
         }
         return books;
     }
 
     @Override
     public Optional<Book> findById(int id) {
-        String sql = "SELECT * FROM books WHERE id = ?";
+        String sql = "SELECT * FROM books WHERE id = ? AND is_deleted = FALSE";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
@@ -61,7 +61,7 @@ public class BookRepositoryImpl implements BookRepository {
                 return Optional.of(mapResultSetToBook(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas wyszukiwania książki po ID", e);
         }
         return Optional.empty();
     }
@@ -69,7 +69,7 @@ public class BookRepositoryImpl implements BookRepository {
     @Override
     public List<Book> searchBooks(String query) {
         List<Book> books = new ArrayList<>();
-        String sql = "SELECT * FROM books WHERE LOWER(title) LIKE LOWER(?) OR LOWER(author) LIKE LOWER(?)";
+        String sql = "SELECT * FROM books WHERE (LOWER(title) LIKE LOWER(?) OR LOWER(author) LIKE LOWER(?)) AND is_deleted = FALSE";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -83,7 +83,7 @@ public class BookRepositoryImpl implements BookRepository {
                 books.add(mapResultSetToBook(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas prostego wyszukiwania książek", e);
         }
         return books;
     }
@@ -116,7 +116,7 @@ public class BookRepositoryImpl implements BookRepository {
                 books.add(mapResultSetToBook(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas zaawansowanego wyszukiwania książek", e);
         }
         return books;
     }
@@ -135,13 +135,13 @@ public class BookRepositoryImpl implements BookRepository {
                 return rs.getInt(1);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas liczenia książek", e);
         }
         return 0;
     }
 
     private String buildWhereClause(SearchCriteria criteria, List<Object> params) {
-        StringBuilder where = new StringBuilder(" WHERE 1=1");
+        StringBuilder where = new StringBuilder(" WHERE is_deleted = FALSE");
         if (criteria.getTitle() != null && !criteria.getTitle().isEmpty()) {
             where.append(" AND LOWER(title) LIKE LOWER(?)");
             params.add("%" + criteria.getTitle() + "%");
@@ -171,7 +171,7 @@ public class BookRepositoryImpl implements BookRepository {
     @Override
     public List<Book> getBooksByCategory(int categoryId) {
         List<Book> books = new ArrayList<>();
-        String sql = "SELECT * FROM books WHERE category_id = ?";
+        String sql = "SELECT * FROM books WHERE category_id = ? AND is_deleted = FALSE";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -182,29 +182,27 @@ public class BookRepositoryImpl implements BookRepository {
                 books.add(mapResultSetToBook(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas pobierania książek po kategorii", e);
         }
         return books;
     }
 
     @Override
     public boolean deleteBook(int bookId) {
-        String sql = "DELETE FROM books WHERE id = ?";
+        String sql = "UPDATE books SET is_deleted = TRUE WHERE id = ?";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setInt(1, bookId);
-            int affected = stmt.executeUpdate();
-            return affected > 0;
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0;
         } catch (SQLException e) {
-            System.err.println("Nie można usunąć książki (prawdopodobnie ma historię wypożyczeń).");
-            return false;
+            throw new RuntimeException("Błąd podczas usuwania książki", e);
         }
     }
 
     @Override
     public int countAllBooks() {
-        String sql = "SELECT COUNT(*) FROM books";
+        String sql = "SELECT COUNT(*) FROM books WHERE is_deleted = FALSE";
         try (Connection conn = DatabaseConfig.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -213,14 +211,14 @@ public class BookRepositoryImpl implements BookRepository {
                 return rs.getInt(1);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas liczenia wszystkich książek", e);
         }
         return 0;
     }
 
     @Override
     public int countByStatus(String status) {
-        String sql = "SELECT COUNT(*) FROM books WHERE status = ?";
+        String sql = "SELECT COUNT(*) FROM books WHERE status = ? AND is_deleted = FALSE";
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, status);
@@ -229,7 +227,7 @@ public class BookRepositoryImpl implements BookRepository {
                 return rs.getInt(1);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas liczenia książek po statusie", e);
         }
         return 0;
     }
@@ -244,6 +242,7 @@ public class BookRepositoryImpl implements BookRepository {
                 .categoryId(rs.getInt("category_id"))
                 .status(rs.getString("status"))
                 .reservedForUserId((Integer) rs.getObject("reserved_for_user_id"))
+                .isDeleted(rs.getBoolean("is_deleted"))
                 .build();
     }
 }

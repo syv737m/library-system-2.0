@@ -5,6 +5,7 @@ import model.Category;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class CategoryRepositoryImpl implements CategoryRepository {
     @Override
@@ -14,7 +15,9 @@ public class CategoryRepositoryImpl implements CategoryRepository {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, name);
             stmt.executeUpdate();
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) {
+            throw new RuntimeException("Błąd podczas dodawania kategorii", e);
+        }
     }
 
     @Override
@@ -27,7 +30,9 @@ public class CategoryRepositoryImpl implements CategoryRepository {
             while (rs.next()) {
                 list.add(new Category(rs.getInt("id"), rs.getString("name")));
             }
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) {
+            throw new RuntimeException("Błąd podczas pobierania wszystkich kategorii", e);
+        }
         return list;
     }
 
@@ -38,7 +43,9 @@ public class CategoryRepositoryImpl implements CategoryRepository {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
             stmt.executeUpdate();
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) {
+            throw new RuntimeException("Błąd podczas usuwania kategorii", e);
+        }
     }
 
     @Override
@@ -50,7 +57,23 @@ public class CategoryRepositoryImpl implements CategoryRepository {
             stmt.setInt(2, category.getId());
             stmt.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas aktualizacji kategorii", e);
         }
+    }
+
+    @Override
+    public Optional<Category> findByName(String name) {
+        String sql = "SELECT * FROM categories WHERE name = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, name);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return Optional.of(new Category(rs.getInt("id"), rs.getString("name")));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Błąd podczas wyszukiwania kategorii po nazwie", e);
+        }
+        return Optional.empty();
     }
 }

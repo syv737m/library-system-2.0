@@ -16,27 +16,9 @@ import java.util.Optional;
 public class LoanRepositoryImpl implements LoanRepository {
 
     private final ReservationRepository reservationRepository = new ReservationRepositoryImpl();
-    private final BookRepository bookRepository = new BookRepositoryImpl();
 
     @Override
     public boolean loanBook(int userId, int bookId) {
-        Optional<Book> bookOpt = bookRepository.findById(bookId);
-        if (bookOpt.isEmpty()) {
-            System.out.println("Książka o podanym ID nie istnieje.");
-            return false;
-        }
-
-        Book book = bookOpt.get();
-        if (book.getStatus().equals("LOANED")) {
-            System.out.println("Książka jest już wypożyczona.");
-            return false;
-        }
-
-        if (book.getStatus().equals("RESERVED") && book.getReservedForUserId() != userId) {
-            System.out.println("Książka jest zarezerwowana dla innego użytkownika.");
-            return false;
-        }
-
         String insertLoan = "INSERT INTO loans (user_id, book_id, loan_date) VALUES (?, ?, ?)";
         String updateBook = "UPDATE books SET status = 'LOANED', reserved_for_user_id = NULL WHERE id = ?";
 
@@ -54,23 +36,19 @@ public class LoanRepositoryImpl implements LoanRepository {
                 bookStmt.setInt(1, bookId);
                 bookStmt.executeUpdate();
 
-                if (book.getStatus().equals("RESERVED")) {
-                    List<Reservation> reservations = reservationRepository.findReservationsByBookId(bookId);
-                    reservations.stream()
-                        .filter(r -> r.getUserId() == userId)
-                        .findFirst()
-                        .ifPresent(r -> reservationRepository.deleteReservation(r.getId()));
-                }
+                reservationRepository.findReservationsByBookId(bookId).stream()
+                    .filter(r -> r.getUserId() == userId)
+                    .findFirst()
+                    .ifPresent(r -> reservationRepository.deleteReservation(r.getId()));
 
                 conn.commit();
                 return true;
             } catch (SQLException e) {
                 conn.rollback();
-                throw e;
+                throw new RuntimeException("Błąd podczas transakcji wypożyczenia książki", e);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
+            throw new RuntimeException("Błąd podczas uzyskiwania połączenia do wypożyczenia książki", e);
         }
     }
 
@@ -111,11 +89,10 @@ public class LoanRepositoryImpl implements LoanRepository {
                 return true;
             } catch (SQLException e) {
                 conn.rollback();
-                throw e;
+                throw new RuntimeException("Błąd podczas transakcji zwrotu książki", e);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
+            throw new RuntimeException("Błąd podczas uzyskiwania połączenia do zwrotu książki", e);
         }
     }
 
@@ -150,7 +127,7 @@ public class LoanRepositoryImpl implements LoanRepository {
                 topBooks.add(new AbstractMap.SimpleEntry<>(title, count));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas pobierania najpopularniejszych książek", e);
         }
         return topBooks;
     }
@@ -165,7 +142,7 @@ public class LoanRepositoryImpl implements LoanRepository {
                 list.add(mapResultSetToLoan(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas pobierania wypożyczeń", e);
         }
         return list;
     }
@@ -180,7 +157,7 @@ public class LoanRepositoryImpl implements LoanRepository {
                 list.add(mapResultSetToLoan(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Błąd podczas pobierania wypożyczeń użytkownika", e);
         }
         return list;
     }
@@ -194,17 +171,5 @@ public class LoanRepositoryImpl implements LoanRepository {
                 .returnDate(rs.getTimestamp("return_date") != null ?
                         rs.getTimestamp("return_date").toLocalDateTime() : null)
                 .build();
-    }
-
-    private boolean isBookAvailable(int bookId) {
-        String sql = "SELECT status FROM books WHERE id = ?";
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, bookId);
-            ResultSet rs = stmt.executeQuery();
-            return rs.next() && "AVAILABLE".equals(rs.getString("status"));
-        } catch (SQLException e) {
-            return false;
-        }
     }
 }
