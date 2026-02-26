@@ -1,7 +1,6 @@
 package repository;
 
 import model.Loan;
-import model.Reservation;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
@@ -11,95 +10,41 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.AbstractMap;
 import java.util.Map;
-import java.util.Optional;
 
 @Repository
 public class LoanRepositoryImpl implements LoanRepository {
 
     private final DataSource dataSource;
-    private final ReservationRepository reservationRepository;
 
-    public LoanRepositoryImpl(DataSource dataSource, ReservationRepository reservationRepository) {
+    public LoanRepositoryImpl(DataSource dataSource) {
         this.dataSource = dataSource;
-        this.reservationRepository = reservationRepository;
     }
 
     @Override
-    public boolean loanBook(int userId, int bookId) {
-        String insertLoan = "INSERT INTO loans (user_id, book_id, loan_date) VALUES (?, ?, ?)";
-        String updateBook = "UPDATE books SET status = 'LOANED', reserved_for_user_id = NULL WHERE id = ?";
-
-        try (Connection conn = dataSource.getConnection()) {
-            conn.setAutoCommit(false);
-
-            try (PreparedStatement loanStmt = conn.prepareStatement(insertLoan);
-                 PreparedStatement bookStmt = conn.prepareStatement(updateBook)) {
-
-                loanStmt.setInt(1, userId);
-                loanStmt.setInt(2, bookId);
-                loanStmt.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
-                loanStmt.executeUpdate();
-
-                bookStmt.setInt(1, bookId);
-                bookStmt.executeUpdate();
-
-                reservationRepository.findReservationsByBookId(bookId).stream()
-                    .filter(r -> r.getUserId() == userId)
-                    .findFirst()
-                    .ifPresent(r -> reservationRepository.deleteReservation(r.getId()));
-
-                conn.commit();
-                return true;
-            } catch (SQLException e) {
-                conn.rollback();
-                throw new RuntimeException("Błąd podczas transakcji wypożyczenia książki", e);
-            }
+    public void createLoan(int userId, int bookId) {
+        String sql = "INSERT INTO loans (user_id, book_id, loan_date) VALUES (?, ?, ?)";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            stmt.setInt(2, bookId);
+            stmt.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
+            stmt.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException("Błąd podczas uzyskiwania połączenia do wypożyczenia książki", e);
+            throw new RuntimeException("Błąd podczas tworzenia wypożyczenia", e);
         }
     }
 
     @Override
-    public boolean returnBook(int bookId, int userId) {
-        String updateLoan = "UPDATE loans SET return_date = ? WHERE book_id = ? AND user_id = ? AND return_date IS NULL";
-
-        try (Connection conn = dataSource.getConnection()) {
-            conn.setAutoCommit(false);
-
-            try (PreparedStatement loanStmt = conn.prepareStatement(updateLoan)) {
-                loanStmt.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
-                loanStmt.setInt(2, bookId);
-                loanStmt.setInt(3, userId);
-
-                if (loanStmt.executeUpdate() == 0) {
-                    conn.rollback();
-                    return false;
-                }
-
-                Optional<Reservation> nextReservation = reservationRepository.findNextReservationForBook(bookId);
-                if (nextReservation.isPresent()) {
-                    String updateBookSql = "UPDATE books SET status = 'RESERVED', reserved_for_user_id = ? WHERE id = ?";
-                    try (PreparedStatement bookStmt = conn.prepareStatement(updateBookSql)) {
-                        bookStmt.setInt(1, nextReservation.get().getUserId());
-                        bookStmt.setInt(2, bookId);
-                        bookStmt.executeUpdate();
-                    }
-                } else {
-                    String updateBookSql = "UPDATE books SET status = 'AVAILABLE', reserved_for_user_id = NULL WHERE id = ?";
-                    try (PreparedStatement bookStmt = conn.prepareStatement(updateBookSql)) {
-                        bookStmt.setInt(1, bookId);
-                        bookStmt.executeUpdate();
-                    }
-                }
-
-                conn.commit();
-                return true;
-            } catch (SQLException e) {
-                conn.rollback();
-                throw new RuntimeException("Błąd podczas transakcji zwrotu książki", e);
-            }
+    public boolean returnLoan(int bookId, int userId) {
+        String sql = "UPDATE loans SET return_date = ? WHERE book_id = ? AND user_id = ? AND return_date IS NULL";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
+            stmt.setInt(2, bookId);
+            stmt.setInt(3, userId);
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            throw new RuntimeException("Błąd podczas uzyskiwania połączenia do zwrotu książki", e);
+            throw new RuntimeException("Błąd podczas aktualizacji zwrotu wypożyczenia", e);
         }
     }
 
@@ -144,7 +89,6 @@ public class LoanRepositoryImpl implements LoanRepository {
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
-
             while (rs.next()) {
                 list.add(mapResultSetToLoan(rs));
             }

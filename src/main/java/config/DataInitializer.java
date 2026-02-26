@@ -6,6 +6,7 @@ import repository.BookRepository;
 import repository.CategoryRepository;
 import repository.LoanRepository;
 import repository.UserRepository;
+import service.LibraryService;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
@@ -20,12 +21,14 @@ public class DataInitializer {
     private final BookRepository bookRepo;
     private final CategoryRepository catRepo;
     private final LoanRepository loanRepo;
+    private final LibraryService libraryService;
 
-    public DataInitializer(UserRepository userRepo, BookRepository bookRepo, CategoryRepository catRepo, LoanRepository loanRepo) {
+    public DataInitializer(UserRepository userRepo, BookRepository bookRepo, CategoryRepository catRepo, LoanRepository loanRepo, LibraryService libraryService) {
         this.userRepo = userRepo;
         this.bookRepo = bookRepo;
         this.catRepo = catRepo;
         this.loanRepo = loanRepo;
+        this.libraryService = libraryService;
     }
 
     @PostConstruct
@@ -87,16 +90,16 @@ public class DataInitializer {
 
             if (user1.isPresent() && user2.isPresent()) {
                 System.out.println("[System] Tworzenie historii wypożyczeń...");
-                loanRepo.loanBook(user1.get().getId(), 1); loanRepo.returnBook(1, user1.get().getId());
-                loanRepo.loanBook(user2.get().getId(), 1); loanRepo.returnBook(1, user2.get().getId());
-                loanRepo.loanBook(user1.get().getId(), 1); loanRepo.returnBook(1, user1.get().getId());
-                loanRepo.loanBook(user2.get().getId(), 2); loanRepo.returnBook(2, user2.get().getId());
-                loanRepo.loanBook(user1.get().getId(), 2); loanRepo.returnBook(2, user1.get().getId());
-                loanRepo.loanBook(user1.get().getId(), 5); loanRepo.returnBook(5, user1.get().getId());
+                libraryService.rentBook(user1.get().getId(), 1); libraryService.returnBook(1, user1.get().getId());
+                libraryService.rentBook(user2.get().getId(), 1); libraryService.returnBook(1, user2.get().getId());
+                libraryService.rentBook(user1.get().getId(), 1); libraryService.returnBook(1, user1.get().getId());
+                libraryService.rentBook(user2.get().getId(), 2); libraryService.returnBook(2, user2.get().getId());
+                libraryService.rentBook(user1.get().getId(), 2); libraryService.returnBook(2, user1.get().getId());
+                libraryService.rentBook(user1.get().getId(), 5); libraryService.returnBook(5, user1.get().getId());
             }
 
             if (user2.isPresent()) {
-                loanRepo.loanBook(user2.get().getId(), 6);
+                libraryService.rentBook(user2.get().getId(), 6);
                 System.out.println("[System] Książka 'Folwark zwierzęcy' została wypożyczona przez user2.");
             }
         }

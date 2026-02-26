@@ -15,6 +15,7 @@ public interface BookRepository {
     int countBooks(SearchCriteria criteria);
     List<Book> getBooksByCategory(int categoryId);
     boolean deleteBook(int bookId);
+    void updateBookStatus(int bookId, String status, Integer reservedForUserId);
     int countAllBooks();
     int countByStatus(String status);
 }

@@ -198,6 +198,24 @@ public class BookRepositoryImpl implements BookRepository {
     }
 
     @Override
+    public void updateBookStatus(int bookId, String status, Integer reservedForUserId) {
+        String sql = "UPDATE books SET status = ?, reserved_for_user_id = ? WHERE id = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, status);
+            if (reservedForUserId != null) {
+                stmt.setInt(2, reservedForUserId);
+            } else {
+                stmt.setNull(2, Types.INTEGER);
+            }
+            stmt.setInt(3, bookId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Błąd podczas aktualizacji statusu książki", e);
+        }
+    }
+
+    @Override
     public int countAllBooks() {
         String sql = "SELECT COUNT(*) FROM books WHERE is_deleted = FALSE";
         try (Connection conn = dataSource.getConnection();

@@ -46,6 +46,7 @@ Projekt aplikacji konsolowej do zarządzania biblioteką, zrealizowany w ramach 
 - **Lombok**
 - **jBCrypt**
 - **Jakarta Annotation API** (`@PostConstruct`)
+- **JUnit 5** & **Mockito** - do testów jednostkowych
 
 ---
 
@@ -56,32 +57,28 @@ Projekt aplikacji konsolowej do zarządzania biblioteką, zrealizowany w ramach 
 ├── src
 │   ├── main
 │   │   ├── java
-│   │   │   ├── config         // Konfiguracja Springa (AppConfig) i inicjalizator danych (DataInitializer)
-│   │   │   ├── main           // Główna klasa aplikacji (Main)
-│   │   │   ├── model          // Modele danych (Book, User, etc.)
+│   │   │   ├── config         // Konfiguracja Springa i inicjalizator danych
+│   │   │   ├── main           // Główna klasa aplikacji
+│   │   │   ├── model          // Modele danych
 │   │   │   ├── repository     // Repozytoria (@Repository)
 │   │   │   └── service        // Serwisy (@Service)
 │   │   └── resources
 │   │       └── schema.sql     // Skrypt SQL do inicjalizacji bazy danych
 │   └── test
+│       └── java
+│           └── service        // Testy jednostkowe dla warstwy serwisowej
 └── pom.xml                    // Plik konfiguracyjny Mavena
 ```
 
 ---
 
-## Konfiguracja Bazy Danych
-
-Aplikacja jest skonfigurowana do pracy z plikową bazą danych **H2**. Konfiguracja `DataSource` znajduje się w klasie `src/main/java/config/AppConfig.java`. Inicjalizacja schematu bazy danych odbywa się automatycznie przez Springa przy użyciu pliku `schema.sql`.
-
----
-
-## Uruchomienie i Dane Testowe
+## Uruchomienie i Testowanie
 
 ### Wymagania
 - **Java Development Kit (JDK)** w wersji 17 lub nowszej.
 - **Apache Maven**.
 
-### Kroki
+### Uruchomienie Aplikacji
 1. Sklonuj repozytorium lub pobierz pliki projektu.
 2. Otwórz terminal lub wiersz poleceń w głównym katalogu projektu.
 3. Uruchom aplikację za pomocą polecenia Mavena:
@@ -90,14 +87,15 @@ Aplikacja jest skonfigurowana do pracy z plikową bazą danych **H2**. Konfigura
    ```
 4. Przy pierwszym uruchomieniu aplikacja automatycznie wypełni bazę danych zestawem danych testowych.
 
+### Uruchomienie Testów
+Aby uruchomić testy jednostkowe, użyj polecenia:
+```bash
+mvn test
+```
+
 ### Domyślne konta
 
 - **Administrator:** `admin` / `admin123`
 - **Użytkownik 1:** `user` / `user123`
 - **Użytkownik 2 (z wypożyczoną książką):** `user2` / `user123`
-
-### Dane początkowe
-- **Książki i kategorie**: System tworzy 4 kategorie i 6 książek.
-- **Historia wypożyczeń**: System tworzy kilka archiwalnych wypożyczeń, aby statystyki popularności nie były puste.
-- **Aktywne wypożyczenie**: Książka "Folwark zwierzęcy" jest automatycznie wypożyczona przez `user2`.
 ```

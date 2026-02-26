@@ -86,7 +86,7 @@ public class Main {
                 case 4 -> handleReserveBook(authService, bookRepo, reservationRepo);
                 case 5 -> handleMyReservations(reservationRepo, authService);
                 case 6 -> handleLoan(libraryService, authService);
-                case 7 -> handleReturn(loanRepo, authService);
+                case 7 -> handleReturn(libraryService, loanRepo, authService);
                 case 8 -> { if(isAdmin) handleAddBook(bookRepo, catRepo); else accessDenied(); }
                 case 9 -> { if(isAdmin) handleDeleteBook(bookRepo); else accessDenied(); }
                 case 10 -> { if(isAdmin) handleManageCategories(catRepo); else accessDenied(); }
@@ -245,14 +245,14 @@ public class Main {
         }
     }
 
-    private static void handleReturn(LoanRepository loanRepo, AuthService authService) {
+    private static void handleReturn(LibraryService libraryService, LoanRepository loanRepo, AuthService authService) {
         int userId = authService.getCurrentUser().getId();
         System.out.println("Twoje aktywne wypożyczenia:");
         loanRepo.getActiveLoansByUser(userId).forEach(System.out::println);
 
         System.out.print("\nPodaj ID książki do zwrotu: ");
         int bookId = readInt();
-        if (loanRepo.returnBook(bookId, userId)) {
+        if (libraryService.returnBook(bookId, userId)) {
             System.out.println("Sukces: Zwrócono książkę.");
         } else {
             System.out.println("Błąd: Nie masz wypożyczonej tej książki.");
