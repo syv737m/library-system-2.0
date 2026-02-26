@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS reservations;
 DROP TABLE IF EXISTS loans;
 DROP TABLE IF EXISTS books;
 DROP TABLE IF EXISTS categories;
@@ -25,8 +26,10 @@ CREATE TABLE books (
     publication_year INT,
     isbn VARCHAR(20),
     category_id INT,
-    status VARCHAR(20) DEFAULT 'AVAILABLE',
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+    status VARCHAR(20) DEFAULT 'AVAILABLE', -- AVAILABLE, LOANED, RESERVED
+    reserved_for_user_id INT NULL,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
+    FOREIGN KEY (reserved_for_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE TABLE loans (
@@ -35,6 +38,15 @@ CREATE TABLE loans (
     book_id INT NOT NULL,
     loan_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     return_date TIMESTAMP NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (book_id) REFERENCES books(id)
+);
+
+CREATE TABLE reservations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    book_id INT NOT NULL,
+    reservation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (book_id) REFERENCES books(id)
 );

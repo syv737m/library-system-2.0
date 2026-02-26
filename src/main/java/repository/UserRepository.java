@@ -9,4 +9,5 @@ public interface UserRepository {
     List<User> getAllUsers();
     boolean deleteUser(int userId);
     Optional<User> findByUsername(String username);
+    int countActiveUsers();
 }

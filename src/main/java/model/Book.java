@@ -15,6 +15,7 @@ public class Book {
     private String author;
     private int publicationYear;
     private String isbn;
-    private String category;
+    private int categoryId;
     private String status;
+    private Integer reservedForUserId;
 }

@@ -7,4 +7,5 @@ public interface CategoryRepository {
     void addCategory(String name);
     List<Category> getAllCategories();
     void deleteCategory(int id);
+    void updateCategory(Category category);
 }

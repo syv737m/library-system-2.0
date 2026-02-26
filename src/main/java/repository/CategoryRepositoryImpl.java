@@ -40,4 +40,17 @@ public class CategoryRepositoryImpl implements CategoryRepository {
             stmt.executeUpdate();
         } catch (SQLException e) { e.printStackTrace(); }
     }
+
+    @Override
+    public void updateCategory(Category category) {
+        String sql = "UPDATE categories SET name = ? WHERE id = ?";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, category.getName());
+            stmt.setInt(2, category.getId());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }

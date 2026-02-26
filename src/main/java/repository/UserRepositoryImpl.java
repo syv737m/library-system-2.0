@@ -85,4 +85,19 @@ public class UserRepositoryImpl implements UserRepository {
         // ... (tutaj kod usuwania taki jak miałeś wcześniej, ale wewnątrz impl)
         return false; // uproszczenie na potrzeby przykładu
     }
+
+    @Override
+    public int countActiveUsers() {
+        String sql = "SELECT COUNT(DISTINCT user_id) FROM loans WHERE return_date IS NULL";
+        try (Connection conn = DatabaseConfig.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
 }
